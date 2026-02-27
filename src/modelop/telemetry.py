@@ -46,6 +46,16 @@ TOKENS_GENERATED_TOTAL = Counter(
     "Generated output tokens by tenant.",
     ["tenant_id"],
 )
+PROMPT_TRUNCATIONS_TOTAL = Counter(
+    "prompt_truncations_total",
+    "Prompt truncation count by tenant.",
+    ["tenant_id"],
+)
+REQUEST_ID_COLLISIONS_TOTAL = Counter(
+    "request_id_collisions_total",
+    "Concurrent request-id collision rejections.",
+    ["tenant_id"],
+)
 SCHEDULER_TICKS_TOTAL = Counter("scheduler_ticks_total", "Continuous batching ticks.")
 
 KV_CACHE_UTILIZATION_RATIO = Gauge(
@@ -91,6 +101,12 @@ class Telemetry:
 
     def add_generated_tokens(self, tenant_id: str, count: int) -> None:
         TOKENS_GENERATED_TOTAL.labels(tenant_id=tenant_id).inc(max(0, count))
+
+    def record_prompt_truncation(self, tenant_id: str) -> None:
+        PROMPT_TRUNCATIONS_TOTAL.labels(tenant_id=tenant_id).inc()
+
+    def record_request_id_collision(self, tenant_id: str) -> None:
+        REQUEST_ID_COLLISIONS_TOTAL.labels(tenant_id=tenant_id).inc()
 
     def tick_scheduler(self, queue_depth: int, active_sequences: int) -> None:
         SCHEDULER_TICKS_TOTAL.inc()
