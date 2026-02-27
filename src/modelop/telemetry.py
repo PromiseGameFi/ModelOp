@@ -1,6 +1,40 @@
 from __future__ import annotations
 
-from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
+try:
+    from prometheus_client import (
+        CONTENT_TYPE_LATEST,
+        Counter,
+        Gauge,
+        Histogram,
+        generate_latest,
+    )
+except ModuleNotFoundError:
+    CONTENT_TYPE_LATEST = "text/plain; charset=utf-8"
+
+    class _NoopMetric:
+        def labels(self, **kwargs):
+            return self
+
+        def inc(self, amount: float = 1.0) -> None:
+            return None
+
+        def set(self, value: float) -> None:
+            return None
+
+        def observe(self, value: float) -> None:
+            return None
+
+    def Counter(*args, **kwargs):  # type: ignore[override]
+        return _NoopMetric()
+
+    def Gauge(*args, **kwargs):  # type: ignore[override]
+        return _NoopMetric()
+
+    def Histogram(*args, **kwargs):  # type: ignore[override]
+        return _NoopMetric()
+
+    def generate_latest() -> bytes:
+        return b"# prometheus_client not installed; using noop telemetry\n"
 
 REQUESTS_TOTAL = Counter(
     "gateway_requests_total",
