@@ -29,6 +29,10 @@ class GatewayConfig:
     max_request_tokens: int = 8192
     generation_timeout_seconds: float = 120.0
 
+    enable_prompt_truncation: bool = True
+    prompt_truncation_head_ratio: float = 0.35
+    prompt_truncation_marker: str = "\n[...context truncated...]\n"
+
     shed_threshold: float = 0.90
     kv_budget_bytes: int = 8 * 1024 * 1024 * 1024
     kv_bytes_per_token: int = 16_384
@@ -49,4 +53,3 @@ class GatewayConfig:
 
     def policy_for(self, tenant_id: str) -> TenantPolicy:
         return self.tenant_policies.get(tenant_id, self.default_tenant_policy)
-
