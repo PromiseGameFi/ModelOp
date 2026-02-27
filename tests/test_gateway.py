@@ -1,4 +1,6 @@
 import unittest
+import threading
+import time
 
 from fastapi.testclient import TestClient
 
@@ -11,6 +13,7 @@ class GatewayAdmissionTests(unittest.TestCase):
         app = create_app(
             GatewayConfig(
                 max_request_tokens=20,
+                enable_prompt_truncation=False,
                 tenant_policies={
                     "tenant-a": TenantPolicy(
                         rate_tokens_per_sec=10_000.0,
@@ -31,6 +34,35 @@ class GatewayAdmissionTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("exceeds max_request_tokens=20", response.json()["detail"])
+
+    def test_truncates_prompt_to_fit_context_window(self) -> None:
+        app = create_app(
+            GatewayConfig(
+                max_request_tokens=20,
+                enable_prompt_truncation=True,
+                tenant_policies={
+                    "tenant-a": TenantPolicy(
+                        rate_tokens_per_sec=10_000.0,
+                        burst_tokens=10_000.0,
+                        default_adapter_id="adapter-a",
+                    )
+                },
+            )
+        )
+        payload = {
+            "tenant_id": "tenant-a",
+            "prompt": "x" * 80,  # ceil(80/4)=20 prompt tokens
+            "max_new_tokens": 5,  # prompt budget is 15, requires truncation
+        }
+
+        with TestClient(app) as client:
+            response = client.post("/v1/generate", json=payload)
+
+        body = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(body["prompt_truncated"])
+        self.assertGreater(body["original_prompt_tokens"], body["effective_prompt_tokens"])
+        self.assertLessEqual(body["effective_prompt_tokens"] + payload["max_new_tokens"], 20)
 
     def test_rejects_rate_limited_request_with_429(self) -> None:
         app = create_app(
@@ -88,3 +120,40 @@ class GatewayAdmissionTests(unittest.TestCase):
             response.json()["detail"],
             "request shed due to KV-cache pressure threshold",
         )
+
+    def test_rejects_duplicate_request_id_with_409(self) -> None:
+        app = create_app(
+            GatewayConfig(
+                scheduler_decode_step_seconds=0.02,
+                tenant_policies={
+                    "tenant-u": TenantPolicy(
+                        rate_tokens_per_sec=10_000.0,
+                        burst_tokens=10_000.0,
+                        default_adapter_id="adapter-u",
+                    )
+                },
+            )
+        )
+        payload = {
+            "tenant_id": "tenant-u",
+            "request_id": "dup-request-1",
+            "prompt": "hello world " * 20,
+            "max_new_tokens": 40,
+        }
+
+        first_status: list[int] = []
+
+        with TestClient(app) as client:
+            def run_first() -> None:
+                first_status.append(client.post("/v1/generate", json=payload).status_code)
+
+            first_thread = threading.Thread(target=run_first)
+            first_thread.start()
+            time.sleep(0.05)
+
+            second = client.post("/v1/generate", json=payload)
+            first_thread.join()
+
+        self.assertEqual(first_status[0], 200)
+        self.assertEqual(second.status_code, 409)
+        self.assertIn("already in flight", second.json()["detail"])
