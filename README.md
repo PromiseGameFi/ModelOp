@@ -17,6 +17,28 @@ pip install -e ".[dev]"
 uvicorn modelop.main:app --host 0.0.0.0 --port 8000
 ```
 
+If your environment is offline and cannot install new packages, run directly with:
+
+```bash
+PYTHONPATH=src uvicorn modelop.main:app --host 0.0.0.0 --port 8000
+```
+
+The app now falls back to noop telemetry export when `prometheus_client` is unavailable.
+
+## Tests
+
+Primary:
+
+```bash
+PYTHONPATH=src python -m unittest discover -s tests -v
+```
+
+Optional (if `pytest` is installed):
+
+```bash
+PYTHONPATH=src pytest -q
+```
+
 ## Endpoints
 
 - `POST /v1/generate`
