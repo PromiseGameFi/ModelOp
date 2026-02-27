@@ -17,6 +17,9 @@ class GenerateResponse(BaseModel):
     adapter_id: str
     output: str
     prompt_tokens: int
+    original_prompt_tokens: int
+    effective_prompt_tokens: int
+    prompt_truncated: bool
     completion_tokens: int
     total_tokens: int
     queue_time_seconds: float
