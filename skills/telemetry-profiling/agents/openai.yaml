@@ -1,0 +1,4 @@
+interface:
+  display_name: "Telemetry Profiling"
+  short_description: "Instrument TTFT/TPOT/KV observability"
+  default_prompt: "Add or refine Prometheus metrics and dashboard queries for inference latency and capacity signals."

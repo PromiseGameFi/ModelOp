@@ -1,0 +1,4 @@
+interface:
+  display_name: "Chaos Matrix Load"
+  short_description: "Run skewed multi-tenant load scenarios"
+  default_prompt: "Create or execute chaos matrix load tests and produce a post-mortem tied to telemetry evidence."

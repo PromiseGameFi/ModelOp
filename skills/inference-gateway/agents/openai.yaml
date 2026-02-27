@@ -1,0 +1,4 @@
+interface:
+  display_name: "Inference Gateway"
+  short_description: "Build token-aware multi-tenant ingress logic"
+  default_prompt: "Implement or refactor gateway admission control, adapter routing metadata, and overload shedding behavior."

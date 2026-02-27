@@ -1,0 +1,4 @@
+interface:
+  display_name: "Continuous Batching"
+  short_description: "Implement scheduler tick/refill policies"
+  default_prompt: "Design or modify the continuous batching state machine, queue policy, and slot replacement logic."
